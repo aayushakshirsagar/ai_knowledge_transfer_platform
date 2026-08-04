@@ -13,4 +13,7 @@ dependencies = [
     "qdrant-client>=1.13.0",
     "testcontainers>=4.9.0",
     "uvicorn>=0.51.0",
+    "SQLAlchemy>=2.0,<3.0",
+    "alembic>=1.11.1",
+    "psycopg2-binary>=2.9.10",
 ]
