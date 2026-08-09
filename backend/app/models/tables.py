@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
@@ -83,6 +83,9 @@ class User(Base):
     conversations = relationship("Conversation", back_populates="user", cascade="all, delete-orphan")
     audit_log = relationship("AuditLog", back_populates="user", cascade="all, delete-orphan")
     connector_credentials = relationship("ConnectorCredential", back_populates="connected_by_user", cascade="all, delete-orphan")
+    google_drive_folders = relationship("GoogleDriveFolderConfig", back_populates="user", cascade="all, delete-orphan")
+    google_drive_sync_state = relationship("GoogleDriveSyncState", back_populates="user", cascade="all, delete-orphan")
+    oauth_tokens = relationship("OAuthToken", back_populates="user", cascade="all, delete-orphan")
 
 
 class Project(Base):
@@ -102,6 +105,7 @@ class Project(Base):
     documents = relationship("Document", back_populates="project", cascade="all, delete-orphan")
     graph_nodes = relationship("GraphNode", back_populates="project", cascade="all, delete-orphan")
     graph_edges = relationship("GraphEdge", back_populates="project", cascade="all, delete-orphan")
+    google_drive_folder_configs = relationship("GoogleDriveFolderConfig", back_populates="project", cascade="all, delete-orphan")
 
 
 class ProjectAssignment(Base):
@@ -232,6 +236,54 @@ class EvalRun(Base):
     recall: Mapped[float | None] = mapped_column(nullable=True)
     faithfulness_score: Mapped[float | None] = mapped_column(nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class OAuthToken(Base):
+    """Shared encrypted OAuth token storage for all Google connectors.
+
+    One row per (user, connector_type), holding both the access and refresh tokens.
+    """
+
+    __tablename__ = "oauth_tokens"
+    __table_args__ = (UniqueConstraint("user_id", "connector_type", name="uq_oauth_tokens_user_connector"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    connector_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    encrypted_access_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    encrypted_refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    scope: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="oauth_tokens")
+
+
+class GoogleDriveFolderConfig(Base):
+    __tablename__ = "google_drive_folder_configs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
+    folder_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    folder_name: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="google_drive_folders")
+    project = relationship("Project", back_populates="google_drive_folder_configs")
+
+
+class GoogleDriveSyncState(Base):
+    __tablename__ = "google_drive_sync_state"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    folder_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    next_page_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sync_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="google_drive_sync_state")
 
 
 class ConnectorCredential(Base):

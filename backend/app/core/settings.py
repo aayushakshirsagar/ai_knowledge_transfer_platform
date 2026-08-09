@@ -40,6 +40,15 @@ class Settings(BaseSettings):
     # Google
     GOOGLE_OAUTH_CLIENT_ID: str = ""
     GOOGLE_OAUTH_CLIENT_SECRET: str = ""
+    GOOGLE_OAUTH_REDIRECT_URI: str = ""
+    GOOGLE_OAUTH_SCOPES: str = "https://www.googleapis.com/auth/drive.readonly"
+
+    # Gmail
+    GMAIL_CLIENT_ID: str = ""
+    GMAIL_CLIENT_SECRET: str = ""
+    GMAIL_REDIRECT_URI: str = ""
+    GMAIL_ACCESS_TOKEN_STORAGE: str = "database"
+    GMAIL_SCOPES: str = "https://www.googleapis.com/auth/gmail.readonly"
 
     # WhatsApp
     WHATSAPP_BUSINESS_TOKEN: str = ""
