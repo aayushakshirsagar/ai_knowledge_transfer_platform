@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.api.health import router as health_router
 from app.api.google_drive import router as google_drive_router
 from app.api.gmail import router as gmail_router
+from app.api.ingestion import router as ingestion_router
 from app.core.settings import settings
 
 # Create the FastAPI application
@@ -23,3 +24,4 @@ async def root():
 app.include_router(health_router)
 app.include_router(google_drive_router)
 app.include_router(gmail_router)
+app.include_router(ingestion_router)
