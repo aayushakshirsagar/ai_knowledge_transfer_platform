@@ -54,7 +54,6 @@ Implemented in the FastAPI backend. The connector now covers the full OAuth2 cod
 4. **Manual sync trigger** — `/sync` is called explicitly; no scheduler/background queue yet.
 5. **Full download per sync** — the sync lists **all pages** and downloads every file every run. The `next_page_token`/`sync_token` columns exist for a future `changes.list` incremental sync but are not used yet.
 6. **Download in memory** — file bytes are held as `bytes` and passed to storage; large folders could exhaust memory.
-7. **S3 deferred** — storage is a placeholder by design so the sync pipeline can be built and tested without AWS credentials.
 
 ## Data models — design rationale
 
