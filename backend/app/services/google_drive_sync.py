@@ -3,12 +3,15 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+import redis
 import requests
 from sqlalchemy import select
 
 from app.core.settings import settings
-from app.models.tables import Document, DocumentStatus, GoogleDriveFolderConfig, GoogleDriveSyncState, Project, User
+from app.models.tables import Document, GoogleDriveFolderConfig, GoogleDriveSyncState, User
 from app.services.google_drive_connector import GoogleDriveConnectorService
+from app.services.ingestion_service import DocumentIngestionService
+from app.storage.s3_storage import S3StorageService
 
 
 class GoogleDriveSyncService:
@@ -20,9 +23,17 @@ class GoogleDriveSyncService:
         "application/vnd.google-apps.drawing": "application/pdf",
     }
 
-    def __init__(self, session_factory=None) -> None:
+    def __init__(self, session_factory=None, s3_service: S3StorageService | None = None, redis_client=None) -> None:
         self.session_factory = session_factory
         self.connector_service = GoogleDriveConnectorService(session_factory=session_factory)
+        self.ingestion_service = DocumentIngestionService()
+        self.s3_service = s3_service or S3StorageService()
+        self.redis_client = redis_client or self._build_default_redis_client()
+
+    def _build_default_redis_client(self) -> redis.Redis:
+        if not settings.REDIS_URL:
+            raise RuntimeError("REDIS_URL is required for background queue support")
+        return redis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
 
     def register_folder(self, user_id: int, project_id: int, folder_id: str, folder_name: str | None = None) -> GoogleDriveFolderConfig:
         with self.session_factory() as session:
@@ -53,6 +64,10 @@ class GoogleDriveSyncService:
             if folder_config is None:
                 raise ValueError("Folder configuration not found")
 
+            current_user = session.get(User, folder_config.user_id)
+            if current_user is None:
+                raise RuntimeError("Google Drive folder owner user not found")
+
             token_data = self.connector_service.get_refresh_token_for_user(user_id)
             if not token_data or not token_data.get("refresh_token"):
                 raise RuntimeError("Google Drive refresh token is not configured")
@@ -74,36 +89,34 @@ class GoogleDriveSyncService:
             created_count = 0
             downloaded_count = 0
             for drive_file in self._list_folder_files(access_token, folder_config.folder_id):
-                document = session.scalar(
+                existing = session.scalar(
                     select(Document).where(
                         Document.project_id == folder_config.project_id,
                         Document.source == "drive",
                         Document.source_ref == drive_file["id"],
                     )
                 )
-                if document is None:
-                    document = Document(
-                        project_id=folder_config.project_id,
-                        source="drive",
-                        source_ref=drive_file["id"],
-                        title=drive_file.get("name"),
-                        file_path=drive_file.get("webViewLink"),
-                        uploaded_by=folder_config.user_id,
-                        status=DocumentStatus.pending.value,
-                    )
-                    session.add(document)
-                    session.flush()
-                    created_count += 1
+                if existing is not None:
+                    continue
 
                 content = self._download_file(access_token, drive_file["id"], drive_file.get("mimeType", ""))
-                if content:
-                    self._store_document_content(
-                        project_id=folder_config.project_id,
-                        document_id=document.id,
-                        filename=drive_file.get("name") or drive_file["id"],
-                        content=content,
-                    )
-                    downloaded_count += 1
+                if not content:
+                    continue
+
+                self.ingestion_service.upload_document_content(
+                    content=content,
+                    title=drive_file.get("name"),
+                    filename=drive_file.get("name") or drive_file["id"],
+                    source="drive",
+                    source_ref=drive_file["id"],
+                    project_id=folder_config.project_id,
+                    db=session,
+                    current_user=current_user,
+                    s3_service=self.s3_service,
+                    redis_client=self.redis_client,
+                )
+                created_count += 1
+                downloaded_count += 1
 
             state.updated_at = datetime.utcnow()
             session.commit()
@@ -154,10 +167,6 @@ class GoogleDriveSyncService:
         response = requests.get(url, params=params, headers=headers, timeout=30)
         response.raise_for_status()
         return response.content
-
-    def _store_document_content(self, project_id: int, document_id: int, filename: str, content: bytes) -> str:
-        """Placeholder for S3 document storage; replace with a real S3 upload once configured."""
-        return f"projects/{project_id}/documents/{document_id}/{filename}"
 
     def _get_access_token(self, refresh_token: str) -> str:
         response = requests.post(

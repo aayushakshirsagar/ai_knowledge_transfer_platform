@@ -5,10 +5,12 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, HTTPException, Query
 
 from app.services.gmail_connector import GmailAPIError, GmailConnectorService
+from app.services.gmail_sync import GmailSyncService
 
 router = APIRouter(prefix="/api/gmail", tags=["gmail"])
 
 connector = GmailConnectorService()
+sync_service = GmailSyncService()
 
 
 def _handle_errors(exc: Exception) -> HTTPException:
@@ -54,5 +56,16 @@ def get_thread(
         )
     try:
         return connector.get_thread(user_id=user_id, thread_id=thread_id.strip(), format=format)
+    except Exception as exc:
+        raise _handle_errors(exc)
+
+
+@router.post("/sync")
+def sync_gmail(
+    user_id: Annotated[int, Query(description="Owner of the Gmail connection")] = 1,
+    project_id: Annotated[int, Query(description="Project to ingest the threads into")] = ...,
+) -> dict[str, object]:
+    try:
+        return sync_service.sync(user_id=user_id, project_id=project_id)
     except Exception as exc:
         raise _handle_errors(exc)
