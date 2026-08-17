@@ -18,5 +18,8 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "redis",
     "fakeredis",
-    "boto3"
+    "boto3",
+    "docling>=2.120.1",
+    "pymupdf>=1.28.2",
+    "openpyxl>=3.1.5",
 ]
