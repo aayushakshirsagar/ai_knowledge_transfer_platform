@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.api.health import router as health_router
+from app.api.ingestion import router as ingestion_router
 from app.core.settings import settings
 
 # Create the FastAPI application
@@ -19,3 +20,4 @@ async def root():
 
 # Register API routers
 app.include_router(health_router)
+app.include_router(ingestion_router)
