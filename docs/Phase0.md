@@ -85,10 +85,13 @@ verify it by
 - cd backend 
 - uv run pytest tests/test_vector_store.py -v
 
+
+
 ## Summary 
 Ticket 001 - docker compose up -d 
 Tikcet 002 - uv run alembic upgrade head 
 Ticket 003 - uv run pytest tests/test_vector_store.py -v 
+Ticket 004 - uv run pytest tests/test_ingestion_upload.py -q 
 
 # Git Workflow
 
@@ -152,5 +155,11 @@ git checkout -b feature/ticket-002-<ticket-name>
 - Merge only after testing.
 - Delete branches after merging.
 - Pull the latest `main` before starting every new ticket.
+- When a new ticket is added, sync with teammates by pulling the latest `main` and rebasing your branch:
+  - `git checkout main`
+  - `git pull`
+  - `git checkout feature/<your-branch>`
+  - `git rebase main`
+- If your feature depends on another teammate's work, coordinate before merging and verify the integration locally.
 
 ---
