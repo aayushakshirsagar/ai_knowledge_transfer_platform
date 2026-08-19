@@ -27,7 +27,6 @@ class DocumentSource(str, Enum):
 class DocumentStatus(str, Enum):
     pending = "pending"
     parsed = "parsed"
-    embedded = "embedded"
     failed = "failed"
 
 
@@ -144,7 +143,6 @@ class DocumentChunk(Base):
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     chunk_text: Mapped[str] = mapped_column(Text, nullable=False)
     contextual_header: Mapped[str | None] = mapped_column(Text, nullable=True)
-    vector_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     document = relationship("Document", back_populates="chunks")

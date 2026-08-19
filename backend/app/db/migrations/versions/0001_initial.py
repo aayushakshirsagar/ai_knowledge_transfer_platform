@@ -65,7 +65,6 @@ def upgrade() -> None:
         sa.Column("chunk_index", sa.Integer(), nullable=False),
         sa.Column("chunk_text", sa.Text(), nullable=False),
         sa.Column("contextual_header", sa.Text(), nullable=True),
-        sa.Column("vector_id", sa.String(length=128), nullable=True),
         sa.Column("token_count", sa.Integer(), nullable=True),
     )
 

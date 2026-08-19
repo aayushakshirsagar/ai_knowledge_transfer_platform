@@ -10,17 +10,12 @@ class Settings(BaseSettings):
     # AI Models
     ANTHROPIC_API_KEY: str = ""
     OPEN_SOURCE_LLM_ENDPOINT: str = ""
-    VOYAGE_API_KEY: str = ""
 
     # Database
     DATABASE_URL: str
 
     # Redis
     REDIS_URL: str
-
-    # Qdrant
-    QDRANT_URL: str
-    QDRANT_API_KEY: str = ""
 
     # AWS
     AWS_ACCESS_KEY_ID: str = ""
