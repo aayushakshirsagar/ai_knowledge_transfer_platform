@@ -6,11 +6,11 @@ class Settings(BaseSettings):
     APP_NAME: str = "Company Brain API"
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
-
     # AI Models
     ANTHROPIC_API_KEY: str = ""
     OPEN_SOURCE_LLM_ENDPOINT: str = ""
     VOYAGE_API_KEY: str = ""
+    voyage_model: str = "voyage-3"
 
     # Database
     DATABASE_URL: str
@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     # Qdrant
     QDRANT_URL: str
     QDRANT_API_KEY: str = ""
+    qdrant_collection: str = "document_chunks"
 
     # AWS
     AWS_ACCESS_KEY_ID: str = ""

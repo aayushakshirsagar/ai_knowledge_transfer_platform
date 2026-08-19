@@ -22,4 +22,6 @@ dependencies = [
     "docling>=2.120.1",
     "pymupdf>=1.28.2",
     "openpyxl>=3.1.5",
+    "voyager-ai>=0.0.1",
+    "voyageai>=0.5.0",
 ]
