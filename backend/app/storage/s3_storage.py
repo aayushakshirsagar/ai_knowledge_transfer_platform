@@ -45,3 +45,12 @@ class S3StorageService:
             Params={"Bucket": self.bucket_name, "Key": key},
             ExpiresIn=expiry_seconds,
         )
+
+    def download_bytes(self, key: str) -> bytes:
+        """
+        NEW - added for TICKET-020. The ingestion pipeline (app/ingestion/orchestrator.py)
+        needs to pull the raw file back down from S3 using document.file_path (the key
+        returned by upload_file) before it can be parsed.
+        """
+        response = self.client.get_object(Bucket=self.bucket_name, Key=key)
+        return response["Body"].read()
